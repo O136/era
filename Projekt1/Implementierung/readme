@@ -1,0 +1,48 @@
+The project was compiled and tested on a 4.15.0 x86_64 GNU/Linux Kernel
+
+Dependencies:
+  nasm version >= 2.13.02
+  gcc version  >= 7.3.0
+  make
+
+Project Structure:
+        makefile
+        readme
+
+        headers
+          polynom.h
+          utils.h
+        src
+          main.c
+          norm.asm
+          polynom.c
+          utils.c
+        test
+          test.c
+          polynom.txt
+
+test.c      contains useful testcases to test the
+            correctness of the norm function.
+
+utils.h     contains helper functions to print out the polynomes.
+
+norm.asm    contains the assembly implementation of the norm function defined
+            in polynom.h.
+
+polynom.txt is just a C implementation that can be used to understand the
+            norm.asm better.
+
+If the dependencies are fulfilled then we can proceed to compile
+the project with the help of the make utility and makefile.
+
+COMPILATION:
+
+There are 3 possible make targets : all, test, clean.
+They can be invoked with the commands from the console:
+
+make all
+make test
+make clean
+
+Input  files:
+Output files: 
