@@ -1,13 +1,15 @@
 The project was compiled and tested on a 4.15.0 x86_64 GNU/Linux Kernel
 
-Dependencies:
+Tool dependencies:
   nasm version >= 2.13.02
   gcc version  >= 7.3.0
   make
 
 Project Structure:
+readme
+
+root
         makefile
-        readme
 
         headers
           polynom.h
@@ -15,7 +17,6 @@ Project Structure:
         src
           main.c
           norm.asm
-          polynom.c
           utils.c
         test
           test.c
@@ -33,16 +34,36 @@ polynom.txt is just a C implementation that can be used to understand the
             norm.asm better.
 
 If the dependencies are fulfilled then we can proceed to compile
-the project with the help of the make utility and makefile.
+the project with the help of the make utility.
+
+IMPORTANT:
+
+For the following steps be sure that your current working directory
+is the root directory of the project.
 
 COMPILATION:
 
 There are 3 possible make targets : all, test, clean.
 They can be invoked with the commands from the console:
 
-make all
-make test
-make clean
+1.make all
 
-Input  files:
-Output files: 
+Will result in a main.out binary as an output which can then be run
+as ./main.out
+
+Its purpose is to give to take input from user and compute the
+normalized polynomials.
+
+2.make test
+
+Will result in a test.out binary as an output in the test directory which
+again can be run as test/test.out
+
+The test.out will run all test cases and is independent of the main.out
+program.
+
+3.make clean
+
+It will remove all the object files and binaries which were
+created during the make all and make test phases.
+

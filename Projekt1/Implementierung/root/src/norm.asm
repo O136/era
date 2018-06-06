@@ -1,6 +1,8 @@
 BITS 64
 GLOBAL norm
 
+
+
 norm:
 ;;; float norm(struct polynom *input, struct polynom *output)
         push    rbp		     ;work with rbp instead of rsp directly
