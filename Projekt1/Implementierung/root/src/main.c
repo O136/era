@@ -6,47 +6,17 @@
 #include "polynom.h"
 #include "utils.h"
 
-bool isCoeffZero(struct polynom* p, unsigned int i) {
-  return fabs(p->p_fCoefficients[i]) < REL_ERROR;
-}
-
-bool areAllCoeffZero(struct polynom* p) {
-  for(unsigned int i = 0; i <= p->iDegree; ++i) {
-    if (isCoeffZero(p, i) == false)
-      return false;
-  }
-  return true;
-}
-
 struct polynom* readInput() {
   struct polynom* p = malloc(sizeof *p);
 
   printf("Degree: ");
   scanf("%d", &p->iDegree);
 
-  if(p->iDegree < 1) {
-    printf("The degree must be a positive integer!");
-    free(p);
-    return 0; //NULL
-  }
-
   int i = 0;
   printf("Coefficients(separated by space): ");
 
   p->p_fCoefficients  = (float*)malloc((p->iDegree +1)*sizeof(float));
   while (i <= p->iDegree && scanf("%f", &p->p_fCoefficients[i++]) == 1);
-
-  if(areAllCoeffZero(p)) {
-    printf("The polynomial with all 0 coefficients is invalid!\n");
-    free(p);
-    return 0;
-  }
-
-  if(isCoeffZero(p, i-1)) {
-    printf("The last coefficient is 0, choose a smaller degree!\n");
-    free(p);
-    return 0;
-  }
 
   return p;
 }
@@ -68,15 +38,13 @@ int main() {
 
   do{
     printf("\n\n\n");
-    printf("press X to enter a polynomial or any other key to exit\n\n");
+    printf("Enter X for a polynomial or any other key to exit\n\n");
     scanf(" %c", &choice);
     printf("\n\n");
     choice = toupper(choice);
 
     if(choice == 'X') {
       struct polynom* in = readInput();
-
-      if(in == 0) break;
 
       printf("\nInput polynomial: ");
       printf("\n\tDegree: ");
@@ -87,8 +55,13 @@ int main() {
 
       struct polynom* out  = malloc(sizeof *out);
       out->p_fCoefficients = (float*)malloc((in->iDegree + 1)*sizeof(float));
+      float normc = norm(in, out);
+      if(fabs(normc) < REL_ERROR) {
+        printf("\nInvalid polynomial!\nMake sure the last coefficient > 0,and degree >= 0\n");
+        break;
+      }
 
-      printf("\n\nnormalizing constant %f\n", norm(in, out));
+      printf("\n\nnormalizing constant %f\n", normc);
 
       printf("\nOutput polynomial: ");
       printf("\n\tDegree: ");

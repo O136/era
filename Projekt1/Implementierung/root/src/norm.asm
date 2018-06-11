@@ -1,78 +1,89 @@
 BITS 64
 GLOBAL norm
 
+section .data
+        REL_ERROR: dd 0.005     ;needed for the (tolerant) floating point comparison
 
+section .text
+
+isCoeffZero:                    ;rdi=polynom* p, rsi=int i
+  mov esi, esi                  ;clear esi register
+  mov rax, QWORD [rdi+8]        ;rax = p->p_fCoefficients
+  fld DWORD [rax+rsi*4]         ;push to stack p->p_fCoefficients[i]
+  fabs                          ;take abs val of st0 (=p->p_fCoefficients[i])
+  fld DWORD [REL_ERROR]         ;push 0.005 to stack, now st0=0.005
+  fucomip st0, st1              ;compare st0=0.005 and st1=p->p_fCoefficents
+  fstp st0                      ;pop fpu stack
+  seta al                       ;set al=1 or al=0 taking in account the fucomip result
+  ret
+
+areAllCoeffZero:                ;rdi=polynom* p
+  push r12                      ;save r12, rbp, rbx
+  push rbp
+  push rbx
+  mov r12d, DWORD [rdi]         ;r12d=lower 32 bits , r12d=p->iDegree
+  test r12d, r12d               ;test if r12d is 0
+  js .coef_early_return
+  mov rbp, rdi                  ;rbp=polynom* p
+  mov ebx, 0                    ;ebx plays the role of int i loop variable
+
+.coef_loop:
+  mov esi, ebx                  ;rsi = i, needed to call isCoeffZero
+  mov rdi, rbp                  ;isCoeffZero(rdi=p, rsi=int i)
+  call isCoeffZero
+  test al, al                   ;test if al is 0
+  je .coef_normal_return
+  add ebx, 1                    ;increment i
+  cmp ebx, r12d                 ;if r12d > 0 loop again
+  jle .coef_loop
+
+.coef_normal_return:
+  pop rbx                       ;restore the previous values
+  pop rbp                       ;of the registers
+  pop r12
+  ret
+
+.coef_early_return:
+  mov eax, 1                    ;eax is the return register
+  jmp .coef_normal_return
 
 norm:
-;;; float norm(struct polynom *input, struct polynom *output)
-        push    rbp		     ;work with rbp instead of rsp directly
-        mov     rbp, rsp
-        mov     QWORD  [rbp-24], rdi ;*input param pointer
-        mov     QWORD  [rbp-32], rsi ;*output param pointer
+  push rbp
+	push rbx
+	sub rsp, 8                    ;save some space for local vars
+	mov rbx, rdi                  ;rbx=polynom* input
+	mov rbp, rsi                  ;rbp=polynom* ouput
+	call areAllCoeffZero
+	fldz                          ;push 0 to fpu stack
+	test al, al                   ;if al=0 return (if allCoeffZero==0)
+	jne .norm_return
+	mov edi, DWORD [rbx]          ;edi=input->iDegree
+	test edi, edi                 ;check if iDegree==0
+	js .norm_return               ;if input->iDegree < 0
+	fstp st0                      ;clear st0 register
+	mov DWORD [rbp], edi          ;output->iDegree = input->iDegree
+  movsx rax, edi                ;mov with sign extension from 32 to 64
+	mov rdx, QWORD [rbx+8]        ;rdx=input->p_fCoefficients[0]
+	fld DWORD [rdx+rax*4]         ;push to fpu stack input->p_fCoefficients[iDegree]
+	mov eax, 0
 
+.norm_loop:
+	movsx rdx, eax                ;move with sign extension from 32 to 64
+	mov rcx, QWORD [rbp+8]        ;rcx=output->p_fCoefficients[0]
+	mov rsi, QWORD [rbx+8]        ;rsi=input->p_fCoefficients[0]
+	fld st0                       ;push st0 to fpu stack (st0=a_N=input->p_fCoefficients[iDegree])
+	fdivr DWORD [rsi+rdx*4]       ;st0=input->p_fCoefficients[i]/st0
+	fstp DWORD [rcx+rdx*4]        ;store result in output->p_fCoefficients[i]  and pop fpu stack
+	add eax, 1                    ;increment loop var i
+	cmp edi, eax
+	jge .norm_loop
 
-;;; int degree = input->iDegree
-        mov     rax, QWORD  [rbp-24] ;move raw *input pointer into rax
-        mov     eax, DWORD  [rax]    ;dereference *input pointer and move 32 bits(int) into eax
-        mov     DWORD  [rbp-8], eax  ;local variable int degree=eax
+.norm_return:
+  fstp DWORD [rsp+4]            ;store the return value and pop fpu stack
+  movss xmm0, DWORD [rsp+4]     ;move float to xmm0,xmm0 is the return register for float func.
+				;rsp+4 needed because movss xmm0, st0 is not valid
+  add rsp, 8                    ;restore rsp, rbp, rbx
+  pop rbx
+  pop rbp
+  ret
 
-
-;;; output->iDegree = degree;
-        mov     rax, QWORD  [rbp-32] ;move raw *output pointer into rax
-        mov     edx, DWORD  [rbp-8]  ;move int degree into edx
-        mov     DWORD  [rax], edx    ;dereference *output pointer and move 32 edx bits
-				     ;*output->iDegree = edx
-
-;;; float a_N = input->p_fCoefficients[degree]
-        mov     rax, QWORD  [rbp-24] ;move *input pointer into rax
-        mov     rax, QWORD  [rax+8]  ;rax = input->p_fCoefficients
-        mov     edx, DWORD  [rbp-8]  ;move int degree into edx
-        movsx   rdx, edx             ;move edx into rdx preserving the sign
-        shl     rdx, 2               ;shift 2 bits from rdx to the left (multiplication by 4)
-				     ;we're accesing an array of float coefficients, so we need
-				     ;offset of 4 bytes
-        add     rax, rdx	     ;(p_fCoefficients+degree)
-        fld     DWORD  [rax]         ;push *(input->p_fCoefficients+degree)=a_N on the fpu stack(ST(0))
-                                     ;fld automatically converts to double precision floating format
-        fstp    DWORD  [rbp-12]      ;copy & pop value from ST(0) register into local variable [rb-12]=a_N,
-				     ;using DWORD because a_N is a 4Byte float
-
-
-;;; for (int i=0; i <= degree;
-        mov     DWORD  [rbp-4], 0    ;create local variable int i=0
-.START_LOOP:
-        mov     eax, DWORD  [rbp-4]  ;eax = i
-        cmp     eax, DWORD  [rbp-8]  ;if i > local variable int degree
-        jg      .FINISH_LOOP	     ;then jump to FINISH_LOOP
-
-
-;;; output->p_fCoefficients[i] = input->p_fCoefficients[i] / a_N;
-        mov     rax, QWORD  [rbp-24] ;rax=input
-        mov     rax, QWORD  [rax+8]  ;rax=input+8 which is also rax=input->p_fCoefficients
-        mov     edx, DWORD  [rbp-4]  ;edx = local variable int i
-        movsx   rdx, edx             ;sign extend the 32bit edx to 64bit rdx
-        shl     rdx, 2               ;rdx=rdx*4 (needed in order to iterate float array of p_fCoefficients)
-        add     rax, rdx             ;inp=inp+i which is also input[i]
-        fld     DWORD  [rax]         ;dereference inp, namely push *inp on the FPU stack
-        mov     rax, QWORD  [rbp-32] ;rax=output pointer
-        mov     rax, QWORD  [rax+8]  ;rax=output+8 which is also rax=output->p_Coefficients
-        mov     edx, DWORD  [rbp-4]  ;edx=local variable int i
-        movsx   rdx, edx             ;sign extend the 32bit edx to 64bit edx
-        shl     rdx, 2               ;rdx=rdx*4, needed to iterate the 4byte float array of p_fCoefficients
-        add     rax, rdx             ;rax=input[i] which is also rax=input+i
-        fdiv    DWORD  [rbp-12]      ;divides input->p_fCoefficients[i] by a_N which is also ST(0)
-				     ;and store it in ST(0), input[i] was pushed to ST(0) earlier
-        fstp    DWORD  [rax]         ;copy & pop from ST(0) to *(output->p_fCoefficients[i])
-        add     DWORD  [rbp-4], 1    ;increment local variable int i
-        jmp     .START_LOOP
-.FINISH_LOOP:
-
-;;; return a_N (normalizing constant c);
-        fld     DWORD  [rbp-12]      ;push local variable float a_N to the FPU stack
-				     ;(ST(0) is top of FPU stack)
-        fstp    DWORD  [rbp-36]      ;copy & pop from ST(0) to address where return value is located
-        movss   xmm0, DWORD  [rbp-36];move floating point return value(a_N) to xmm0(return register)
-				     ;also DWORD [rbp-12] could've been possible
-				     ;but fstp DWORD xmm0 is not allowed
-        pop     rbp
-        ret

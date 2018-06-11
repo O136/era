@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS = -Wall -m64 -std=gnu11 -I headers
+CFLAGS = -Wall -m64 -std=gnu11 -I headers -fPIC -no-pie
 
 ASM = nasm
 ASM_FLAGS = -f elf64
