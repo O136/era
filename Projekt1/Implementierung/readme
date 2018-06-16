@@ -6,6 +6,7 @@ Tool dependencies:
   make
 
 Project Structure:
+
 readme
 
 root
@@ -48,8 +49,8 @@ They can be invoked with the commands from the console:
 
 1.make all
 
-Will result in a main.out binary as an output which can then be run
-as ./main.out
+Will result in a test/test.out and main.out binary as an output 
+which can then be run as ./main.out
 
 Its purpose is to give to take input from user and compute the
 normalized polynomials.
