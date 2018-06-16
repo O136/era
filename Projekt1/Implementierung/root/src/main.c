@@ -57,7 +57,7 @@ int main() {
       out->p_fCoefficients = (float*)malloc((in->iDegree + 1)*sizeof(float));
       float normc = norm(in, out);
       if(fabs(normc) < REL_ERROR) {
-        printf("\nInvalid polynomial!\nMake sure the last coefficient > 0,and degree >= 0\n");
+        printf("\n\nInvalid polynomial!\nMake sure the last coefficient > 0,and degree >= 0\n");
         break;
       }
 

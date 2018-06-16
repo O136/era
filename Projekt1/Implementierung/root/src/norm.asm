@@ -49,34 +49,34 @@ areAllCoeffZero:                ;rdi=polynom* p
 
 norm:
   push rbp
-	push rbx
-	sub rsp, 8                    ;save some space for local vars
-	mov rbx, rdi                  ;rbx=polynom* input
-	mov rbp, rsi                  ;rbp=polynom* ouput
-	call areAllCoeffZero
-	fldz                          ;push 0 to fpu stack
-	test al, al                   ;if al=0 return (if allCoeffZero==0)
-	jne .norm_return
-	mov edi, DWORD [rbx]          ;edi=input->iDegree
-	test edi, edi                 ;check if iDegree==0
-	js .norm_return               ;if input->iDegree < 0
-	fstp st0                      ;clear st0 register
-	mov DWORD [rbp], edi          ;output->iDegree = input->iDegree
+  push rbx
+  sub rsp, 8                    ;save some space for local vars
+  mov rbx, rdi                  ;rbx=polynom* input
+  mov rbp, rsi                  ;rbp=polynom* ouput
+  call areAllCoeffZero
+  fldz                          ;push 0 to fpu stack
+  test al, al                   ;if al=0 return (if allCoeffZero==0)
+  jne .norm_return
+  mov edi, DWORD [rbx]          ;edi=input->iDegree
+  test edi, edi                 ;check if iDegree==0
+  js .norm_return               ;if input->iDegree < 0
+  fstp st0                      ;clear st0 register
+  mov DWORD [rbp], edi          ;output->iDegree = input->iDegree
   movsx rax, edi                ;mov with sign extension from 32 to 64
-	mov rdx, QWORD [rbx+8]        ;rdx=input->p_fCoefficients[0]
-	fld DWORD [rdx+rax*4]         ;push to fpu stack input->p_fCoefficients[iDegree]
-	mov eax, 0
+  mov rdx, QWORD [rbx+8]        ;rdx=input->p_fCoefficients[0]
+  fld DWORD [rdx+rax*4]         ;push to fpu stack input->p_fCoefficients[iDegree]
+  mov eax, 0
 
 .norm_loop:
-	movsx rdx, eax                ;move with sign extension from 32 to 64
-	mov rcx, QWORD [rbp+8]        ;rcx=output->p_fCoefficients[0]
-	mov rsi, QWORD [rbx+8]        ;rsi=input->p_fCoefficients[0]
-	fld st0                       ;push st0 to fpu stack (st0=a_N=input->p_fCoefficients[iDegree])
-	fdivr DWORD [rsi+rdx*4]       ;st0=input->p_fCoefficients[i]/st0
-	fstp DWORD [rcx+rdx*4]        ;store result in output->p_fCoefficients[i]  and pop fpu stack
-	add eax, 1                    ;increment loop var i
-	cmp edi, eax
-	jge .norm_loop
+  movsx rdx, eax                ;move with sign extension from 32 to 64
+  mov rcx, QWORD [rbp+8]        ;rcx=output->p_fCoefficients[0]
+  mov rsi, QWORD [rbx+8]        ;rsi=input->p_fCoefficients[0]
+  fld st0                       ;push st0 to fpu stack (st0=a_N=input->p_fCoefficients[iDegree])
+  fdivr DWORD [rsi+rdx*4]       ;st0=input->p_fCoefficients[i]/st0
+  fstp DWORD [rcx+rdx*4]        ;store result in output->p_fCoefficients[i]  and pop fpu stack
+  add eax, 1                    ;increment loop var i
+  cmp edi, eax
+  jge .norm_loop
 
 .norm_return:
   fstp DWORD [rsp+4]            ;store the return value and pop fpu stack
